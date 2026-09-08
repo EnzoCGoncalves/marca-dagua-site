@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Marca D'água</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Marca D'água</h1>
+
+        <p class="subtitulo">
+            Coloque sua marca no centro de várias fotos de uma vez
+        </p>
+
+        <form method="POST" enctype="multipart/form-data">
+
+            <!-- ==========================================
+                 ESCOLHER VÁRIAS FOTOS
+                 ========================================== -->
+
+            <div class="campo">
+
+                <label for="fotos">
+                    📷 Escolha suas fotos
+                </label>
+
+                <input
+                    type="file"
+                    id="fotos"
+                    name="fotos"
+                    accept="image/*"
+                    multiple
+                    required
+                >
+
+                <p id="contador">
+                    Nenhuma foto selecionada
+                </p>
+
+            </div>
+
+
+            <!-- ==========================================
+                 ESCOLHER A MARCA
+                 ========================================== -->
+
+            <div class="campo">
+
+                <label for="marca">
+                    🖼️ Escolha sua marca
+                </label>
+
+                <input
+                    type="file"
+                    id="marca"
+                    name="marca"
+                    accept="image/*"
+                    required
+                >
+
+            </div>
+
+
+            <!-- ==========================================
+                 CONFIGURAÇÕES
+                 ========================================== -->
+
+            <div class="configuracoes">
+
+                <h2>Configurações</h2>
+
+                <label for="opacidade">
+                    Opacidade:
+                    <span id="valorOpacidade">30%</span>
+                </label>
+
+                <input
+                    type="range"
+                    id="opacidade"
+                    name="opacidade"
+                    min="1"
+                    max="100"
+                    value="30"
+                >
+
+
+                <label for="tamanho">
+                    Tamanho da marca:
+                    <span id="valorTamanho">30%</span>
+                </label>
+
+                <input
+                    type="range"
+                    id="tamanho"
+                    name="tamanho"
+                    min="5"
+                    max="80"
+                    value="30"
+                >
+
+            </div>
+
+
+            <!-- ==========================================
+                 BOTÃO
+                 ========================================== -->
+
+            <button type="submit">
+                🚀 Aplicar em todas e baixar ZIP
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <script>
+
+        // ==========================================
+        // CONTADOR DE FOTOS
+        // ==========================================
+
+        const fotos = document.getElementById("fotos");
+
+        const contador = document.getElementById("contador");
+
+        fotos.addEventListener("change", function () {
+
+            const quantidade = fotos.files.length;
+
+            if (quantidade === 0) {
+                contador.textContent = "Nenhuma foto selecionada";
+            }
+
+            else if (quantidade === 1) {
+                contador.textContent = "1 foto selecionada";
+            }
+
+            else {
+                contador.textContent =
+                    quantidade + " fotos selecionadas";
+            }
+
+        });
+
+
+        // ==========================================
+        // OPACIDADE
+        // ==========================================
+
+        const opacidade =
+            document.getElementById("opacidade");
+
+        const valorOpacidade =
+            document.getElementById("valorOpacidade");
+
+        opacidade.addEventListener("input", function () {
+
+            valorOpacidade.textContent =
+                opacidade.value + "%";
+
+        });
+
+
+        // ==========================================
+        // TAMANHO
+        // ==========================================
+
+        const tamanho =
+            document.getElementById("tamanho");
+
+        const valorTamanho =
+            document.getElementById("valorTamanho");
+
+        tamanho.addEventListener("input", function () {
+
+            valorTamanho.textContent =
+                tamanho.value + "%";
+
+        });
+
+    </script>
+
+</body>
+
+</html>
