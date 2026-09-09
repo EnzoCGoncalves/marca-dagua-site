@@ -6,6 +6,8 @@ body {
     margin: 0;
     font-family: Arial, sans-serif;
     background: #f2f2f2;
+    /* Evita rolagem lateral indesejada em telas pequenas */
+    overflow-x: hidden;
 }
 
 
@@ -21,6 +23,8 @@ body {
     padding: 35px;
     border-radius: 15px;
     box-shadow: 0 5px 25px rgba(0,0,0,0.10);
+    /* Evita que padding estoure a largura da tela */
+    box-sizing: border-box;
 }
 
 
@@ -59,6 +63,10 @@ h1 {
 
 input[type="file"] {
     width: 100%;
+    /* Área de toque maior e fonte 16px:
+       evita que o iOS dê zoom automático ao tocar no campo */
+    font-size: 16px;
+    padding: 10px 0;
 }
 
 
@@ -85,6 +93,29 @@ input[type="file"] {
 
 input[type="range"] {
     width: 100%;
+    /* Deixa a barra mais alta, mais fácil de arrastar no toque */
+    height: 30px;
+}
+
+/* Bolinha (thumb) maior para facilitar o toque no celular */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #111;
+    cursor: pointer;
+    margin-top: -11px;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #111;
+    cursor: pointer;
+    border: none;
 }
 
 
@@ -106,4 +137,31 @@ button {
 
 button:hover {
     background: #333;
+}
+
+
+/* ==========================================
+   AJUSTES PARA TELAS PEQUENAS (CELULAR)
+   ========================================== */
+
+@media (max-width: 480px) {
+
+    .container {
+        width: 100%;
+        margin: 0;
+        border-radius: 0;
+        padding: 25px 20px;
+        min-height: 100vh;
+        box-shadow: none;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    button {
+        padding: 16px;
+        font-size: 17px;
+    }
+
 }
