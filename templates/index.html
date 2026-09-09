@@ -4,16 +4,20 @@
 <head>
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <meta name="theme-color" content="#111111">
 
     <title>Marca D'água</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
 
-    <div class="container">
+    <main class="container">
 
         <h1>Marca D'água</h1>
 
@@ -21,7 +25,9 @@
             Coloque sua marca no centro de várias fotos de uma vez
         </p>
 
-        <form method="POST" enctype="multipart/form-data">
+        <form id="formulario"
+            method="POST"
+            enctype="multipart/form-data">
 
             <!-- ==========================================
                  ESCOLHER VÁRIAS FOTOS
@@ -38,11 +44,12 @@
                     id="fotos"
                     name="fotos"
                     accept="image/*"
+                    capture="environment"
                     multiple
                     required
                 >
 
-                <p id="contador">
+                <p id="contador" class="ajuda">
                     Nenhuma foto selecionada
                 </p>
 
@@ -67,6 +74,10 @@
                     required
                 >
 
+                <p id="nomeMarca" class="ajuda">
+                    Nenhuma marca selecionada
+                </p>
+
             </div>
 
 
@@ -74,13 +85,13 @@
                  CONFIGURAÇÕES
                  ========================================== -->
 
-            <div class="configuracoes">
+            <section class="configuracoes">
 
                 <h2>Configurações</h2>
 
                 <label for="opacidade">
                     Opacidade:
-                    <span id="valorOpacidade">30%</span>
+                    <strong id="valorOpacidade">30%</strong>
                 </label>
 
                 <input
@@ -95,7 +106,7 @@
 
                 <label for="tamanho">
                     Tamanho da marca:
-                    <span id="valorTamanho">30%</span>
+                    <strong id="valorTamanho">30%</strong>
                 </label>
 
                 <input
@@ -107,31 +118,42 @@
                     value="30"
                 >
 
-            </div>
+            </section>
 
 
             <!-- ==========================================
                  BOTÃO
                  ========================================== -->
 
-            <button type="submit">
-                🚀 Aplicar em todas e baixar ZIP
+            <button id="botao" type="submit">
+                🚀 Aplicar e baixar ZIP
             </button>
+
+            <p id="status" class="status" aria-live="polite"></p>
 
         </form>
 
-    </div>
+    </main>
 
 
     <script>
 
         // ==========================================
-        // CONTADOR DE FOTOS
+        // ELEMENTOS
         // ==========================================
 
+        const formulario = document.getElementById("formulario");
         const fotos = document.getElementById("fotos");
-
+        const marca = document.getElementById("marca");
         const contador = document.getElementById("contador");
+        const nomeMarca = document.getElementById("nomeMarca");
+        const botao = document.getElementById("botao");
+        const status = document.getElementById("status");
+
+
+        // ==========================================
+        // CONTADOR DE FOTOS
+        // ==========================================
 
         fotos.addEventListener("change", function () {
 
@@ -139,15 +161,28 @@
 
             if (quantidade === 0) {
                 contador.textContent = "Nenhuma foto selecionada";
-            }
-
-            else if (quantidade === 1) {
+            } else if (quantidade === 1) {
                 contador.textContent = "1 foto selecionada";
-            }
-
-            else {
+            } else {
                 contador.textContent =
                     quantidade + " fotos selecionadas";
+            }
+
+        });
+
+
+        // ==========================================
+        // NOME DA MARCA
+        // ==========================================
+
+        marca.addEventListener("change", function () {
+
+            if (marca.files.length > 0) {
+                nomeMarca.textContent =
+                    "Marca: " + marca.files[0].name;
+            } else {
+                nomeMarca.textContent =
+                    "Nenhuma marca selecionada";
             }
 
         });
@@ -157,17 +192,13 @@
         // OPACIDADE
         // ==========================================
 
-        const opacidade =
-            document.getElementById("opacidade");
-
+        const opacidade = document.getElementById("opacidade");
         const valorOpacidade =
             document.getElementById("valorOpacidade");
 
         opacidade.addEventListener("input", function () {
-
             valorOpacidade.textContent =
                 opacidade.value + "%";
-
         });
 
 
@@ -175,16 +206,28 @@
         // TAMANHO
         // ==========================================
 
-        const tamanho =
-            document.getElementById("tamanho");
-
+        const tamanho = document.getElementById("tamanho");
         const valorTamanho =
             document.getElementById("valorTamanho");
 
         tamanho.addEventListener("input", function () {
-
             valorTamanho.textContent =
                 tamanho.value + "%";
+        });
+
+
+        // ==========================================
+        // ENVIO
+        // ==========================================
+
+        formulario.addEventListener("submit", function () {
+
+            // Evita que a pessoa clique várias vezes
+            botao.disabled = true;
+            botao.textContent = "⏳ Processando fotos...";
+
+            status.textContent =
+                "Isso pode levar alguns segundos. Não feche esta página.";
 
         });
 

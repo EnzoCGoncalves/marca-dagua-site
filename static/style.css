@@ -2,11 +2,19 @@
    CONFIGURAÇÃO GERAL
    ========================================== */
 
+* {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
 body {
     margin: 0;
+    min-height: 100vh;
     font-family: Arial, sans-serif;
     background: #f2f2f2;
-    /* Evita rolagem lateral indesejada em telas pequenas */
     overflow-x: hidden;
 }
 
@@ -16,15 +24,12 @@ body {
    ========================================== */
 
 .container {
-    width: 90%;
-    max-width: 600px;
-    margin: 60px auto;
+    width: min(92%, 600px);
+    margin: 40px auto;
     background: white;
     padding: 35px;
     border-radius: 15px;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.10);
-    /* Evita que padding estoure a largura da tela */
-    box-sizing: border-box;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.10);
 }
 
 
@@ -34,14 +39,15 @@ body {
 
 h1 {
     text-align: center;
-    margin-bottom: 5px;
+    margin: 0 0 8px;
+    line-height: 1.2;
 }
-
 
 .subtitulo {
     text-align: center;
     color: #666;
-    margin-bottom: 30px;
+    margin: 0 0 30px;
+    line-height: 1.5;
 }
 
 
@@ -53,20 +59,24 @@ h1 {
     margin-bottom: 25px;
 }
 
-
 .campo label {
     display: block;
     font-weight: bold;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
-
 
 input[type="file"] {
     width: 100%;
-    /* Área de toque maior e fonte 16px:
-       evita que o iOS dê zoom automático ao tocar no campo */
+    min-height: 48px;
     font-size: 16px;
     padding: 10px 0;
+}
+
+.ajuda {
+    margin: 7px 0 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.4;
 }
 
 
@@ -75,47 +85,23 @@ input[type="file"] {
    ========================================== */
 
 .configuracoes {
-    margin-top: 30px;
-    margin-bottom: 30px;
+    margin: 30px 0;
 }
-
 
 .configuracoes h2 {
-    margin-bottom: 20px;
+    margin: 0 0 20px;
 }
-
 
 .configuracoes label {
     display: block;
-    margin-top: 15px;
+    margin-top: 18px;
 }
-
 
 input[type="range"] {
     width: 100%;
-    /* Deixa a barra mais alta, mais fácil de arrastar no toque */
-    height: 30px;
-}
-
-/* Bolinha (thumb) maior para facilitar o toque no celular */
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: #111;
-    cursor: pointer;
-    margin-top: -11px;
-}
-
-input[type="range"]::-moz-range-thumb {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: #111;
-    cursor: pointer;
-    border: none;
+    height: 38px;
+    margin: 5px 0 0;
+    touch-action: pan-y;
 }
 
 
@@ -125,43 +111,99 @@ input[type="range"]::-moz-range-thumb {
 
 button {
     width: 100%;
-    padding: 15px;
+    min-height: 52px;
+    padding: 14px 15px;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #111;
     color: white;
-    font-size: 16px;
+    font-size: 17px;
+    font-weight: bold;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
 }
-
 
 button:hover {
     background: #333;
 }
 
+button:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.status {
+    min-height: 22px;
+    margin: 14px 0 0;
+    text-align: center;
+    color: #555;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
 
 /* ==========================================
-   AJUSTES PARA TELAS PEQUENAS (CELULAR)
+   CELULAR
    ========================================== */
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+
+    body {
+        background: white;
+    }
 
     .container {
         width: 100%;
-        margin: 0;
-        border-radius: 0;
-        padding: 25px 20px;
+        max-width: none;
         min-height: 100vh;
+        margin: 0;
+        padding:
+            max(24px, env(safe-area-inset-top))
+            20px
+            max(24px, env(safe-area-inset-bottom))
+            20px;
+        border-radius: 0;
         box-shadow: none;
     }
 
     h1 {
-        font-size: 24px;
+        font-size: 27px;
+    }
+
+    .subtitulo {
+        font-size: 15px;
+        margin-bottom: 28px;
+    }
+
+    .campo {
+        margin-bottom: 22px;
+    }
+
+    input[type="file"] {
+        font-size: 16px;
     }
 
     button {
-        padding: 16px;
+        min-height: 56px;
         font-size: 17px;
+    }
+
+}
+
+
+/* ==========================================
+   CELULAR MUITO PEQUENO
+   ========================================== */
+
+@media (max-width: 360px) {
+
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    h1 {
+        font-size: 24px;
     }
 
 }

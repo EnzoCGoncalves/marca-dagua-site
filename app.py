@@ -2,13 +2,8 @@
 # IMPORTAÇÕES
 # ==========================================
 
-# Flask cria o site e recebe os arquivos enviados
 from flask import Flask, render_template, request, send_file
-
-# Pillow trabalha com as imagens
-from PIL import Image
-
-# Bibliotecas auxiliares
+from PIL import Image, ImageOps
 from io import BytesIO
 import zipfile
 
@@ -17,11 +12,15 @@ import zipfile
 # CONFIGURAÇÃO DO SITE
 # ==========================================
 
-# Cria a aplicação Flask
 app = Flask(__name__)
 
 # Limita o tamanho total do envio para 100 MB
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
+
+# Limita a dimensão máxima das fotos processadas.
+# Isso evita processamento excessivamente pesado em celulares
+# e deixa a geração do ZIP bem mais rápida.
+MAX_DIMENSAO = 4000
 
 
 # ==========================================
@@ -30,26 +29,27 @@ app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 
 def adicionar_marca_dagua(foto, marca, opacidade=30, tamanho=30):
 
-    # Abre a foto principal
-    imagem = Image.open(foto).convert("RGBA")
+    # Abre a foto e corrige automaticamente a rotação do celular
+    imagem = Image.open(foto)
+    imagem = ImageOps.exif_transpose(imagem).convert("RGBA")
 
-    # Abre a imagem da sua marca
+    # Reduz fotos gigantes mantendo boa qualidade.
+    # Fotos menores que isso não são alteradas.
+    imagem.thumbnail(
+        (MAX_DIMENSAO, MAX_DIMENSAO),
+        Image.Resampling.LANCZOS
+    )
+
+    # Abre a marca
     logo = Image.open(marca).convert("RGBA")
 
-    # ==========================================
-    # REDIMENSIONAR A MARCA
-    # ==========================================
-
-    # Define a largura da marca como uma porcentagem
-    # da largura da foto
-    largura_maxima = int(imagem.width * (tamanho / 100))
-
-    # Evita que a marca fique maior que a própria foto
+    # Define a largura da marca como porcentagem da foto
+    largura_maxima = max(1, int(imagem.width * (tamanho / 100)))
     largura_maxima = min(largura_maxima, imagem.width)
 
-    # Mantém a proporção original da marca
+    # Mantém a proporção da marca
     proporcao = largura_maxima / logo.width
-    nova_altura = int(logo.height * proporcao)
+    nova_altura = max(1, int(logo.height * proporcao))
 
     # Redimensiona a marca
     logo = logo.resize(
@@ -61,52 +61,39 @@ def adicionar_marca_dagua(foto, marca, opacidade=30, tamanho=30):
     # ALTERAR A TRANSPARÊNCIA
     # ==========================================
 
-    # Pega o canal Alpha da marca
     alpha = logo.getchannel("A")
-
-    # Aplica a opacidade escolhida
     alpha = alpha.point(
         lambda pixel: int(pixel * (opacidade / 100))
     )
-
-    # Coloca o novo Alpha na marca
     logo.putalpha(alpha)
 
     # ==========================================
-    # CALCULAR O CENTRO
+    # COLOCAR NO CENTRO
     # ==========================================
 
-    # Calcula a posição horizontal
     x = (imagem.width - logo.width) // 2
-
-    # Calcula a posição vertical
     y = (imagem.height - logo.height) // 2
 
-    # ==========================================
-    # COLOCAR A MARCA NO CENTRO
-    # ==========================================
-
-    # Junta a marca com a foto
     imagem.alpha_composite(logo, (x, y))
 
     # ==========================================
     # PREPARAR O ARQUIVO FINAL
     # ==========================================
 
-    # Cria um arquivo na memória
     arquivo_final = BytesIO()
 
-    # Salva em JPEG com boa qualidade
+    # Qualidade 88 reduz bastante o tamanho do ZIP
+    # sem deixar a foto visualmente ruim para uso comum.
     imagem.convert("RGB").save(
         arquivo_final,
         format="JPEG",
-        quality=95
+        quality=88,
+        optimize=True,
+        progressive=True
     )
 
-    # Volta para o começo do arquivo
     arquivo_final.seek(0)
 
-    # Retorna a imagem pronta
     return arquivo_final
 
 
@@ -117,57 +104,48 @@ def adicionar_marca_dagua(foto, marca, opacidade=30, tamanho=30):
 @app.route("/", methods=["GET", "POST"])
 def index():
 
-    # Se abriu o site normalmente
     if request.method == "GET":
         return render_template("index.html")
 
     # ==========================================
-    # RECEBER VÁRIAS FOTOS
+    # RECEBER ARQUIVOS
     # ==========================================
 
-    # Recebe todas as fotos selecionadas
     fotos = request.files.getlist("fotos")
-
-    # Recebe a marca
     marca = request.files.get("marca")
 
-    # Verifica se os arquivos existem
     if not fotos or not marca:
-        return "Envie pelo menos uma foto e uma marca d'água."
+        return "Envie pelo menos uma foto e uma marca d'água.", 400
 
     # ==========================================
     # RECEBER CONFIGURAÇÕES
     # ==========================================
 
-    # Pega a opacidade
-    opacidade = int(request.form.get("opacidade", 30))
-
-    # Pega o tamanho
-    tamanho = int(request.form.get("tamanho", 30))
+    try:
+        opacidade = max(1, min(100, int(request.form.get("opacidade", 30))))
+        tamanho = max(5, min(80, int(request.form.get("tamanho", 30))))
+    except ValueError:
+        return "Configuração inválida.", 400
 
     # ==========================================
     # CRIAR O ZIP
     # ==========================================
 
-    # Cria o ZIP na memória
     zip_final = BytesIO()
 
-    # Abre o arquivo ZIP
     with zipfile.ZipFile(
         zip_final,
         "w",
-        zipfile.ZIP_DEFLATED
+        zipfile.ZIP_DEFLATED,
+        compresslevel=6
     ) as zip_file:
 
-        # Percorre todas as fotos
-        for numero, foto in enumerate(fotos, start=1):
+        for foto in fotos:
 
-            # Ignora campos vazios
             if not foto.filename:
                 continue
 
             try:
-                # Processa a foto
                 resultado = adicionar_marca_dagua(
                     foto,
                     marca,
@@ -175,27 +153,20 @@ def index():
                     tamanho
                 )
 
-                # Define um nome seguro para a saída
                 nome_original = foto.filename.rsplit("/", 1)[-1]
                 nome_original = nome_original.rsplit("\\", 1)[-1]
 
-                # Remove a extensão original
                 nome_base = nome_original.rsplit(".", 1)[0]
-
-                # Nome da foto processada
                 nome_saida = f"{nome_base}_marca_dagua.jpg"
 
-                # Coloca a foto dentro do ZIP
                 zip_file.writestr(
                     nome_saida,
                     resultado.getvalue()
                 )
 
             except Exception as erro:
-                # Se uma foto der erro, continua com as outras
                 print(f"Erro ao processar {foto.filename}: {erro}")
 
-    # Volta para o começo do ZIP
     zip_final.seek(0)
 
     # ==========================================
@@ -206,7 +177,8 @@ def index():
         zip_final,
         mimetype="application/zip",
         as_attachment=True,
-        download_name="fotos_com_marca_dagua.zip"
+        download_name="fotos_com_marca_dagua.zip",
+        max_age=0
     )
 
 
@@ -215,6 +187,4 @@ def index():
 # ==========================================
 
 if __name__ == "__main__":
-
-    # Inicia o site localmente
     app.run(debug=True)
