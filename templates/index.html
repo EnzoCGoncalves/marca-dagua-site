@@ -1,237 +1,95 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-
 <head>
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
-    <meta name="theme-color" content="#111111">
-
-    <title>Marca D'água</title>
-
-    <link rel="stylesheet"
-        href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#080706">
+  <title>MarcaFlow — Marca d’água em fotos</title>
+  <meta name="description" content="Aplique sua marca d’água em uma ou várias fotos.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body>
-
-    <main class="container">
-
-        <h1>Marca D'água</h1>
-
-        <p class="subtitulo">
-            Coloque sua marca no centro de várias fotos de uma vez
-        </p>
-
-        <form id="formulario"
-            method="POST"
-            enctype="multipart/form-data">
-
-            <!-- ==========================================
-                 ESCOLHER VÁRIAS FOTOS
-                 ========================================== -->
-
-            <div class="campo">
-
-                <label for="fotos">
-                    📷 Escolha suas fotos
-                </label>
-
-                <input
-                    type="file"
-                    id="fotos"
-                    name="fotos"
-                    accept="image/*"
-                    multiple
-                    required
-                >
-
-                <p id="contador" class="ajuda">
-                    Nenhuma foto selecionada
-                </p>
-
-            </div>
-
-
-            <!-- ==========================================
-                 ESCOLHER A MARCA
-                 ========================================== -->
-
-            <div class="campo">
-
-                <label for="marca">
-                    🖼️ Escolha sua marca
-                </label>
-
-                <input
-                    type="file"
-                    id="marca"
-                    name="marca"
-                    accept="image/*"
-                    required
-                >
-
-                <p id="nomeMarca" class="ajuda">
-                    Nenhuma marca selecionada
-                </p>
-
-            </div>
-
-
-            <!-- ==========================================
-                 CONFIGURAÇÕES
-                 ========================================== -->
-
-            <section class="configuracoes">
-
-                <h2>Configurações</h2>
-
-                <label for="opacidade">
-                    Opacidade:
-                    <strong id="valorOpacidade">30%</strong>
-                </label>
-
-                <input
-                    type="range"
-                    id="opacidade"
-                    name="opacidade"
-                    min="1"
-                    max="100"
-                    value="30"
-                >
-
-
-                <label for="tamanho">
-                    Tamanho da marca:
-                    <strong id="valorTamanho">30%</strong>
-                </label>
-
-                <input
-                    type="range"
-                    id="tamanho"
-                    name="tamanho"
-                    min="5"
-                    max="80"
-                    value="30"
-                >
-
-            </section>
-
-
-            <!-- ==========================================
-                 BOTÃO
-                 ========================================== -->
-
-            <button id="botao" type="submit">
-                🚀 Aplicar e baixar ZIP
-            </button>
-
-            <p id="status" class="status" aria-live="polite"></p>
-
-        </form>
-
-    </main>
-
-
-    <script>
-
-        // ==========================================
-        // ELEMENTOS
-        // ==========================================
-
-        const formulario = document.getElementById("formulario");
-        const fotos = document.getElementById("fotos");
-        const marca = document.getElementById("marca");
-        const contador = document.getElementById("contador");
-        const nomeMarca = document.getElementById("nomeMarca");
-        const botao = document.getElementById("botao");
-        const status = document.getElementById("status");
-
-
-        // ==========================================
-        // CONTADOR DE FOTOS
-        // ==========================================
-
-        fotos.addEventListener("change", function () {
-
-            const quantidade = fotos.files.length;
-
-            if (quantidade === 0) {
-                contador.textContent = "Nenhuma foto selecionada";
-            } else if (quantidade === 1) {
-                contador.textContent = "1 foto selecionada";
-            } else {
-                contador.textContent =
-                    quantidade + " fotos selecionadas";
-            }
-
-        });
-
-
-        // ==========================================
-        // NOME DA MARCA
-        // ==========================================
-
-        marca.addEventListener("change", function () {
-
-            if (marca.files.length > 0) {
-                nomeMarca.textContent =
-                    "Marca: " + marca.files[0].name;
-            } else {
-                nomeMarca.textContent =
-                    "Nenhuma marca selecionada";
-            }
-
-        });
-
-
-        // ==========================================
-        // OPACIDADE
-        // ==========================================
-
-        const opacidade = document.getElementById("opacidade");
-        const valorOpacidade =
-            document.getElementById("valorOpacidade");
-
-        opacidade.addEventListener("input", function () {
-            valorOpacidade.textContent =
-                opacidade.value + "%";
-        });
-
-
-        // ==========================================
-        // TAMANHO
-        // ==========================================
-
-        const tamanho = document.getElementById("tamanho");
-        const valorTamanho =
-            document.getElementById("valorTamanho");
-
-        tamanho.addEventListener("input", function () {
-            valorTamanho.textContent =
-                tamanho.value + "%";
-        });
-
-
-        // ==========================================
-        // ENVIO
-        // ==========================================
-
-        formulario.addEventListener("submit", function () {
-
-            // Evita que a pessoa clique várias vezes
-            botao.disabled = true;
-            botao.textContent = "⏳ Processando fotos...";
-
-            status.textContent =
-                "Isso pode levar alguns segundos. Não feche esta página.";
-
-        });
-
-    </script>
-
+  <div class="ambient" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="MarcaFlow — início"><b>✦</b><span>Marca<em>Flow</em></span></a>
+    <span class="privacy"><i></i> Suas imagens não ficam salvas</span>
+  </header>
+
+  <main>
+    <section class="hero">
+      <span class="eyebrow">✦ Rápido, simples e gratuito</span>
+      <h1>Sua marca em todas as fotos.<br><em>Em poucos segundos.</em></h1>
+      <p>Envie suas imagens, ajuste a marca d’água e receba tudo pronto para publicar.</p>
+    </section>
+
+    <form id="formulario" class="workspace" method="post" enctype="multipart/form-data">
+      <section class="card upload-card">
+        <header class="step"><b>01</b><div><h2>Escolha suas fotos</h2><p>Uma foto baixa direto. Várias chegam em um ZIP.</p></div></header>
+        <label class="dropzone" id="dropFotos" for="fotos">
+          <input type="file" id="fotos" name="fotos" accept="image/*" multiple required>
+          <span class="upload-icon"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></span>
+          <strong>Arraste suas fotos aqui</strong><small>ou toque para escolher no aparelho</small>
+          <b>Selecionar fotos</b><span>JPG, PNG ou WEBP · até 100 MB no total</span>
+        </label>
+        <div id="photoSummary" class="summary" hidden>
+          <div id="previews" class="previews"></div>
+          <strong id="contador"></strong><small id="pesoFotos"></small>
+          <button type="button" id="trocarFotos">Trocar fotos</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <header class="step"><b>02</b><div><h2>Adicione sua marca</h2><p>Logos em PNG transparente ficam ainda melhores.</p></div></header>
+        <label class="brand-picker" id="dropMarca" for="marca">
+          <input type="file" id="marca" name="marca" accept="image/*" required>
+          <b>＋</b><span><strong id="nomeMarca">Escolher marca d’água</strong><small id="marcaAjuda">Toque para selecionar uma imagem</small></span>
+          <img id="marcaPreview" alt="Prévia da marca" hidden>
+        </label>
+      </section>
+
+      <section class="card settings">
+        <header class="step"><b>03</b><div><h2>Ajuste e baixe</h2><p>Personalize a aparência do resultado.</p></div></header>
+        <div class="control">
+          <div><label for="opacidade">Opacidade</label><output id="valorOpacidade">30%</output></div>
+          <input type="range" id="opacidade" name="opacidade" min="1" max="100" value="30">
+          <small><span>Suave</span><span>Forte</span></small>
+        </div>
+        <div class="control">
+          <div><label for="tamanho">Tamanho da marca</label><output id="valorTamanho">30%</output></div>
+          <input type="range" id="tamanho" name="tamanho" min="5" max="80" value="30">
+          <small><span>Pequena</span><span>Grande</span></small>
+        </div>
+        <button id="botao" class="primary" type="submit"><span id="buttonLabel">Aplicar marca e baixar</span><svg viewBox="0 0 24 24"><path d="M12 4v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg></button>
+        <div id="progress" class="progress" hidden><i></i></div>
+        <p id="status" class="status" aria-live="polite">Selecione as fotos e a sua marca para começar.</p>
+      </section>
+    </form>
+
+    <section class="benefits">
+      <div><b>⚡</b><span><strong>Processamento rápido</strong><small>Otimizado para fotos grandes</small></span></div>
+      <div><b>▣</b><span><strong>Uma ou várias fotos</strong><small>Download pensado para celular</small></span></div>
+      <div><b>⌁</b><span><strong>Privacidade primeiro</strong><small>Nada é armazenado no servidor</small></span></div>
+    </section>
+  </main>
+  <footer><a class="brand" href="/"><b>✦</b><span>Marca<em>Flow</em></span></a><p>Fotos prontas. Marca presente.</p></footer>
+
+  <script>
+    const $=s=>document.querySelector(s), form=$('#formulario'), fotos=$('#fotos'), marca=$('#marca'), statusEl=$('#status');
+    let photoUrls=[];
+    const size=n=>n<1048576?`${Math.max(1,Math.round(n/1024))} KB`:`${(n/1048576).toFixed(1)} MB`;
+    function ready(){statusEl.classList.remove('error');statusEl.textContent=fotos.files.length&&marca.files.length?'Tudo pronto. Agora é só baixar.':fotos.files.length?'Agora escolha a sua marca d’água.':'Selecione as fotos e a sua marca para começar.'}
+    fotos.addEventListener('change',()=>{
+      photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];$('#previews').replaceChildren();const files=[...fotos.files];
+      $('#photoSummary').hidden=!files.length;$('#dropFotos').hidden=!!files.length;
+      files.slice(0,4).forEach((file,i)=>{const el=document.createElement(i===3&&files.length>4?'span':'img');if(el.tagName==='IMG'){el.src=URL.createObjectURL(file);photoUrls.push(el.src);el.alt=''}else el.textContent=`+${files.length-3}`;$('#previews').append(el)});
+      if(files.length){$('#contador').textContent=files.length===1?'1 foto selecionada':`${files.length} fotos selecionadas`;$('#pesoFotos').textContent=size(files.reduce((s,f)=>s+f.size,0))}ready();
+    });
+    marca.addEventListener('change',()=>{const file=marca.files[0],img=$('#marcaPreview');if(img.dataset.url)URL.revokeObjectURL(img.dataset.url);img.hidden=!file;$('#nomeMarca').textContent=file?file.name:'Escolher marca d’água';$('#marcaAjuda').textContent=file?size(file.size):'Toque para selecionar uma imagem';if(file){img.dataset.url=URL.createObjectURL(file);img.src=img.dataset.url}ready()});
+    $('#trocarFotos').onclick=()=>fotos.click();
+    [['#opacidade','#valorOpacidade'],['#tamanho','#valorTamanho']].forEach(([a,b])=>$(a).oninput=e=>$(b).textContent=e.target.value+'%');
+    function drop(zone,input){['dragenter','dragover'].forEach(t=>$(zone).addEventListener(t,e=>{e.preventDefault();$(zone).classList.add('dragging')}));['dragleave','drop'].forEach(t=>$(zone).addEventListener(t,e=>{e.preventDefault();$(zone).classList.remove('dragging')}));$(zone).addEventListener('drop',e=>{input.files=e.dataTransfer.files;input.dispatchEvent(new Event('change'))})}drop('#dropFotos',fotos);drop('#dropMarca',marca);
+    form.addEventListener('submit',async e=>{e.preventDefault();if(!form.reportValidity())return;const btn=$('#botao');btn.disabled=true;$('#progress').hidden=false;$('#buttonLabel').textContent=fotos.files.length===1?'Preparando sua foto…':`Preparando ${fotos.files.length} fotos…`;statusEl.textContent='Aguarde só um instante. Mantenha esta página aberta.';
+      try{const response=await fetch('/',{method:'POST',body:new FormData(form)});if(!response.ok){const d=await response.json().catch(()=>({}));throw Error(d.erro||'Não foi possível processar as imagens.')}const blob=await response.blob(),header=response.headers.get('Content-Disposition')||'',utf=header.match(/filename\*=UTF-8''([^;]+)/i),plain=header.match(/filename="?([^";]+)"?/i),name=decodeURIComponent(utf?.[1]||plain?.[1]||(fotos.files.length===1?'foto_marca_dagua.jpg':'fotos_com_marca_dagua.zip')),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);statusEl.textContent=fotos.files.length===1?'Foto pronta e baixada!':'Fotos prontas e baixadas!'}catch(err){statusEl.textContent=err.message;statusEl.classList.add('error')}finally{btn.disabled=false;$('#progress').hidden=true;$('#buttonLabel').textContent='Aplicar marca e baixar'}});
+  </script>
 </body>
-
 </html>

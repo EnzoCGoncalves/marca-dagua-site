@@ -1,190 +1,112 @@
-# ==========================================
-# IMPORTAÇÕES
-# ==========================================
-
-from flask import Flask, render_template, request, send_file
-from PIL import Image, ImageOps
 from io import BytesIO
+import os
+from pathlib import Path
 import zipfile
 
-
-# ==========================================
-# CONFIGURAÇÃO DO SITE
-# ==========================================
+from flask import Flask, jsonify, render_template, request, send_file
+from PIL import Image, ImageOps, UnidentifiedImageError
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-
-# Limita o tamanho total do envio para 100 MB
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
-
-# Limita a dimensão máxima das fotos processadas.
-# Isso evita processamento excessivamente pesado em celulares
-# e deixa a geração do ZIP bem mais rápida.
 MAX_DIMENSAO = 4000
+FORMATOS = {"JPEG", "PNG", "WEBP", "BMP", "GIF", "TIFF"}
 
 
-# ==========================================
-# FUNÇÃO PARA CRIAR A MARCA D'ÁGUA
-# ==========================================
+def preparar_marca(arquivo):
+    marca = Image.open(arquivo)
+    if marca.format not in FORMATOS:
+        raise UnidentifiedImageError
+    marca.load()
+    return ImageOps.exif_transpose(marca).convert("RGBA")
 
-def adicionar_marca_dagua(foto, marca, opacidade=30, tamanho=30):
 
-    # Abre a foto e corrige automaticamente a rotação do celular
+def adicionar_marca_dagua(foto, marca_original, opacidade=30, tamanho=30):
     imagem = Image.open(foto)
+    if imagem.format not in FORMATOS:
+        raise UnidentifiedImageError
     imagem = ImageOps.exif_transpose(imagem).convert("RGBA")
+    imagem.thumbnail((MAX_DIMENSAO, MAX_DIMENSAO), Image.Resampling.LANCZOS)
 
-    # Reduz fotos gigantes mantendo boa qualidade.
-    # Fotos menores que isso não são alteradas.
-    imagem.thumbnail(
-        (MAX_DIMENSAO, MAX_DIMENSAO),
-        Image.Resampling.LANCZOS
-    )
+    largura = min(imagem.width, max(1, round(imagem.width * tamanho / 100)))
+    altura = max(1, round(marca_original.height * largura / marca_original.width))
+    marca = marca_original.resize((largura, altura), Image.Resampling.LANCZOS)
+    if opacidade < 100:
+        marca.putalpha(marca.getchannel("A").point(lambda p: p * opacidade // 100))
 
-    # Abre a marca
-    logo = Image.open(marca).convert("RGBA")
-
-    # Define a largura da marca como porcentagem da foto
-    largura_maxima = max(1, int(imagem.width * (tamanho / 100)))
-    largura_maxima = min(largura_maxima, imagem.width)
-
-    # Mantém a proporção da marca
-    proporcao = largura_maxima / logo.width
-    nova_altura = max(1, int(logo.height * proporcao))
-
-    # Redimensiona a marca
-    logo = logo.resize(
-        (largura_maxima, nova_altura),
-        Image.Resampling.LANCZOS
-    )
-
-    # ==========================================
-    # ALTERAR A TRANSPARÊNCIA
-    # ==========================================
-
-    alpha = logo.getchannel("A")
-    alpha = alpha.point(
-        lambda pixel: int(pixel * (opacidade / 100))
-    )
-    logo.putalpha(alpha)
-
-    # ==========================================
-    # COLOCAR NO CENTRO
-    # ==========================================
-
-    x = (imagem.width - logo.width) // 2
-    y = (imagem.height - logo.height) // 2
-
-    imagem.alpha_composite(logo, (x, y))
-
-    # ==========================================
-    # PREPARAR O ARQUIVO FINAL
-    # ==========================================
-
-    arquivo_final = BytesIO()
-
-    # Qualidade 88 reduz bastante o tamanho do ZIP
-    # sem deixar a foto visualmente ruim para uso comum.
-    imagem.convert("RGB").save(
-        arquivo_final,
-        format="JPEG",
-        quality=88,
-        optimize=True,
-        progressive=True
-    )
-
-    arquivo_final.seek(0)
-
-    return arquivo_final
+    posicao = ((imagem.width - marca.width) // 2, (imagem.height - marca.height) // 2)
+    imagem.alpha_composite(marca, posicao)
+    saida = BytesIO()
+    # Evita o custo alto de optimize=True; progressive mantém arquivo leve.
+    imagem.convert("RGB").save(saida, "JPEG", quality=88, progressive=True)
+    return saida.getvalue()
 
 
-# ==========================================
-# ROTA PRINCIPAL
-# ==========================================
+def nome_de_saida(nome):
+    seguro = secure_filename(Path(nome).name) or "foto"
+    return f"{Path(seguro).stem}_marca_dagua.jpg"
+
+
+@app.errorhandler(413)
+def arquivo_grande(_erro):
+    return jsonify(erro="O envio ultrapassa o limite de 100 MB."), 413
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-
     if request.method == "GET":
         return render_template("index.html")
 
-    # ==========================================
-    # RECEBER ARQUIVOS
-    # ==========================================
-
-    fotos = request.files.getlist("fotos")
-    marca = request.files.get("marca")
-
-    if not fotos or not marca:
-        return "Envie pelo menos uma foto e uma marca d'água.", 400
-
-    # ==========================================
-    # RECEBER CONFIGURAÇÕES
-    # ==========================================
+    fotos = [f for f in request.files.getlist("fotos") if f.filename]
+    marca_arquivo = request.files.get("marca")
+    if not fotos or not marca_arquivo or not marca_arquivo.filename:
+        return jsonify(erro="Selecione ao menos uma foto e uma marca d’água."), 400
 
     try:
         opacidade = max(1, min(100, int(request.form.get("opacidade", 30))))
         tamanho = max(5, min(80, int(request.form.get("tamanho", 30))))
-    except ValueError:
-        return "Configuração inválida.", 400
+        marca = preparar_marca(marca_arquivo)  # aberta uma única vez por lote
+    except (ValueError, UnidentifiedImageError, OSError):
+        return jsonify(erro="A marca d’água não é uma imagem válida."), 400
 
-    # ==========================================
-    # CRIAR O ZIP
-    # ==========================================
+    resultados, erros, usados = [], [], set()
+    for foto in fotos:
+        try:
+            conteudo = adicionar_marca_dagua(foto, marca, opacidade, tamanho)
+            nome = nome_de_saida(foto.filename)
+            base, sufixo, numero = Path(nome).stem, Path(nome).suffix, 2
+            while nome.lower() in usados:
+                nome = f"{base}_{numero}{sufixo}"
+                numero += 1
+            usados.add(nome.lower())
+            resultados.append((nome, conteudo))
+        except (UnidentifiedImageError, OSError, ValueError):
+            erros.append(Path(foto.filename).name)
 
-    zip_final = BytesIO()
+    if not resultados:
+        return jsonify(erro="Nenhuma das fotos enviadas pôde ser processada."), 400
 
-    with zipfile.ZipFile(
-        zip_final,
-        "w",
-        zipfile.ZIP_DEFLATED,
-        compresslevel=6
-    ) as zip_file:
+    if len(resultados) == 1 and len(fotos) == 1:
+        nome, conteudo = resultados[0]
+        return send_file(BytesIO(conteudo), mimetype="image/jpeg", as_attachment=True,
+                         download_name=nome, max_age=0)
 
-        for foto in fotos:
+    pacote = BytesIO()
+    # JPEG já é comprimido: ZIP_STORED é bem mais rápido que recomprimir cada foto.
+    with zipfile.ZipFile(pacote, "w", compression=zipfile.ZIP_STORED) as arquivo_zip:
+        for nome, conteudo in resultados:
+            arquivo_zip.writestr(nome, conteudo)
+        if erros:
+            arquivo_zip.writestr("LEIA-ME.txt", "Imagens não processadas:\n" + "\n".join(erros))
+    pacote.seek(0)
+    return send_file(pacote, mimetype="application/zip", as_attachment=True,
+                     download_name="fotos_com_marca_dagua.zip", max_age=0)
 
-            if not foto.filename:
-                continue
-
-            try:
-                resultado = adicionar_marca_dagua(
-                    foto,
-                    marca,
-                    opacidade,
-                    tamanho
-                )
-
-                nome_original = foto.filename.rsplit("/", 1)[-1]
-                nome_original = nome_original.rsplit("\\", 1)[-1]
-
-                nome_base = nome_original.rsplit(".", 1)[0]
-                nome_saida = f"{nome_base}_marca_dagua.jpg"
-
-                zip_file.writestr(
-                    nome_saida,
-                    resultado.getvalue()
-                )
-
-            except Exception as erro:
-                print(f"Erro ao processar {foto.filename}: {erro}")
-
-    zip_final.seek(0)
-
-    # ==========================================
-    # BAIXAR O ZIP
-    # ==========================================
-
-    return send_file(
-        zip_final,
-        mimetype="application/zip",
-        as_attachment=True,
-        download_name="fotos_com_marca_dagua.zip",
-        max_age=0
-    )
-
-
-# ==========================================
-# INICIAR O SERVIDOR
-# ==========================================
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # O recarregador do Flask pode iniciar o processo duas vezes e conflitar com
+    # a sincronização do OneDrive. Ative-o apenas quando realmente precisar:
+    # PowerShell: $env:FLASK_DEBUG="1"; python app.py
+    modo_debug = os.environ.get("FLASK_DEBUG") == "1"
+    print("\nMarcaFlow disponível em http://127.0.0.1:5000\n")
+    app.run(host="127.0.0.1", port=5000, debug=modo_debug, use_reloader=modo_debug)
