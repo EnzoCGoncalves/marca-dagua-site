@@ -1,0 +1,14 @@
+{
+  "name": "MarcaFlow — Marca d'água",
+  "short_name": "MarcaFlow",
+  "description": "Aplique marca d'água em uma ou várias fotos.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080706",
+  "theme_color": "#080706",
+  "categories": ["photo", "utilities", "productivity"],
+  "icons": [{"src": "/static/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+}

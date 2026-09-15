@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import zipfile
 
-from flask import Flask, jsonify, render_template, request, send_file
+from flask import Flask, jsonify, render_template, request, send_file, send_from_directory
 from PIL import Image, ImageOps, UnidentifiedImageError
 from werkzeug.utils import secure_filename
 
@@ -50,6 +50,15 @@ def nome_de_saida(nome):
 @app.errorhandler(413)
 def arquivo_grande(_erro):
     return jsonify(erro="O envio ultrapassa o limite de 100 MB."), 413
+
+
+@app.get("/service-worker.js")
+def service_worker():
+    resposta = send_from_directory(app.static_folder, "service-worker.js")
+    resposta.headers["Content-Type"] = "application/javascript; charset=utf-8"
+    resposta.headers["Cache-Control"] = "no-cache"
+    resposta.headers["Service-Worker-Allowed"] = "/"
+    return resposta
 
 
 @app.route("/", methods=["GET", "POST"])
