@@ -75,6 +75,15 @@
       </section>
     </form>
 
+    <section class="results-section" id="resultsSection" hidden>
+      <header class="results-header">
+        <div><span>✓</span><div><h2>Suas fotos estão prontas</h2><p id="resultsSummary"></p></div></div>
+        <button class="save-all" id="saveAllButton" type="button">Salvar todas</button>
+      </header>
+      <div class="results-grid" id="resultsGrid"></div>
+      <p class="results-help" id="resultsHelp">Você também pode baixar novamente uma foto individualmente.</p>
+    </section>
+
     <section class="benefits">
       <div><b>⚡</b><span><strong>Processamento rápido</strong><small>Otimizado para fotos grandes</small></span></div>
       <div><b>▣</b><span><strong>Uma ou várias fotos</strong><small>Download pensado para celular</small></span></div>
@@ -109,7 +118,7 @@
 
   <script>
     const $=s=>document.querySelector(s), form=$('#formulario'), fotos=$('#fotos'), marca=$('#marca'), statusEl=$('#status');
-    let photoUrls=[];
+    let photoUrls=[],processedResults=[];
     const size=n=>n<1048576?`${Math.max(1,Math.round(n/1024))} KB`:`${(n/1048576).toFixed(1)} MB`;
     function ready(){statusEl.classList.remove('error');statusEl.textContent=fotos.files.length&&marca.files.length?'Tudo pronto. Agora é só baixar.':fotos.files.length?'Agora escolha a sua marca d’água.':'Selecione as fotos e a sua marca para começar.'}
     fotos.addEventListener('change',()=>{
@@ -122,8 +131,16 @@
     $('#trocarFotos').onclick=()=>fotos.click();
     [['#opacidade','#valorOpacidade'],['#tamanho','#valorTamanho']].forEach(([a,b])=>$(a).oninput=e=>$(b).textContent=e.target.value+'%');
     function drop(zone,input){['dragenter','dragover'].forEach(t=>$(zone).addEventListener(t,e=>{e.preventDefault();$(zone).classList.add('dragging')}));['dragleave','drop'].forEach(t=>$(zone).addEventListener(t,e=>{e.preventDefault();$(zone).classList.remove('dragging')}));$(zone).addEventListener('drop',e=>{input.files=e.dataTransfer.files;input.dispatchEvent(new Event('change'))})}drop('#dropFotos',fotos);drop('#dropMarca',marca);
-    form.addEventListener('submit',async e=>{e.preventDefault();if(!form.reportValidity())return;const btn=$('#botao');btn.disabled=true;$('#progress').hidden=false;$('#buttonLabel').textContent=fotos.files.length===1?'Preparando sua foto…':`Preparando ${fotos.files.length} fotos…`;statusEl.textContent='Aguarde só um instante. Mantenha esta página aberta.';
-      try{const response=await fetch('/',{method:'POST',body:new FormData(form)});if(!response.ok){const d=await response.json().catch(()=>({}));throw Error(d.erro||'Não foi possível processar as imagens.')}const blob=await response.blob(),header=response.headers.get('Content-Disposition')||'',utf=header.match(/filename\*=UTF-8''([^;]+)/i),plain=header.match(/filename="?([^";]+)"?/i),name=decodeURIComponent(utf?.[1]||plain?.[1]||(fotos.files.length===1?'foto_marca_dagua.jpg':'fotos_com_marca_dagua.zip')),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);statusEl.textContent=fotos.files.length===1?'Foto pronta e baixada!':'Fotos prontas e baixadas!'}catch(err){statusEl.textContent=err.message;statusEl.classList.add('error')}finally{btn.disabled=false;$('#progress').hidden=true;$('#buttonLabel').textContent='Aplicar marca e baixar'}});
+    function responseName(response,fallback){const header=response.headers.get('Content-Disposition')||'',utf=header.match(/filename\*=UTF-8''([^;]+)/i),plain=header.match(/filename="?([^";]+)"?/i);return decodeURIComponent(utf?.[1]||plain?.[1]||fallback)}
+    function downloadOne(result){const a=document.createElement('a');a.href=result.url;a.download=result.name;document.body.append(a);a.click();a.remove()}
+    function clearResults(){processedResults.forEach(item=>URL.revokeObjectURL(item.url));processedResults=[];$('#resultsGrid').replaceChildren();$('#resultsSection').hidden=true}
+    async function processOne(file){const data=new FormData();data.append('fotos',file,file.name);data.append('marca',marca.files[0],marca.files[0].name);data.append('opacidade',$('#opacidade').value);data.append('tamanho',$('#tamanho').value);const response=await fetch('/',{method:'POST',body:data});if(!response.ok){const detail=await response.json().catch(()=>({}));throw Error(detail.erro||`Não foi possível processar ${file.name}.`)}const blob=await response.blob(),name=responseName(response,`${file.name.replace(/\.[^.]+$/,'')}_marca_dagua.jpg`);return{name,blob,url:URL.createObjectURL(blob)}}
+    function renderResults(results,total){const grid=$('#resultsGrid');results.forEach(result=>{const card=document.createElement('article'),img=document.createElement('img'),info=document.createElement('div'),name=document.createElement('strong'),button=document.createElement('button');img.src=result.url;img.alt=`Resultado ${result.name}`;name.textContent=result.name;button.type='button';button.textContent='Baixar foto';button.addEventListener('click',()=>downloadOne(result));info.append(name,button);card.append(img,info);grid.append(card)});$('#resultsSummary').textContent=results.length===total?`${results.length} ${results.length===1?'imagem pronta':'imagens prontas'}, sem ZIP.`:`${results.length} de ${total} imagens ficaram prontas.`;$('#resultsSection').hidden=false;$('#resultsSection').scrollIntoView({behavior:'smooth',block:'start'})}
+    form.addEventListener('submit',async e=>{e.preventDefault();if(!form.reportValidity())return;const btn=$('#botao'),files=[...fotos.files];clearResults();btn.disabled=true;$('#progress').hidden=false;$('#buttonLabel').textContent='Processando imagens…';statusEl.classList.remove('error');let next=0,finished=0;const output=new Array(files.length),errors=[];
+      async function worker(){while(next<files.length){const index=next++;try{output[index]=await processOne(files[index])}catch(error){errors.push(error.message)}finally{finished++;statusEl.textContent=`Processando ${finished} de ${files.length}…`}}}
+      try{await Promise.all(Array.from({length:Math.min(2,files.length)},worker));processedResults=output.filter(Boolean);if(!processedResults.length)throw Error(errors[0]||'Nenhuma imagem pôde ser processada.');renderResults(processedResults,files.length);if(files.length===1){downloadOne(processedResults[0]);statusEl.textContent='Foto pronta e baixada!'}else statusEl.textContent='Tudo pronto. Toque em “Salvar todas”.';if(errors.length)statusEl.textContent+=` ${errors.length} imagem(ns) apresentaram erro.`}catch(error){statusEl.textContent=error.message;statusEl.classList.add('error')}finally{btn.disabled=false;$('#progress').hidden=true;$('#buttonLabel').textContent='Aplicar marca e baixar'}});
+
+    $('#saveAllButton').addEventListener('click',async()=>{if(!processedResults.length)return;const shareFiles=processedResults.map(item=>new File([item.blob],item.name,{type:'image/jpeg'}));try{if(navigator.canShare?.({files:shareFiles})&&navigator.share){await navigator.share({files:shareFiles,title:'Fotos com marca d’água'});$('#resultsHelp').textContent='Imagens enviadas para salvar ou compartilhar.';return}if('showDirectoryPicker' in window){const directory=await window.showDirectoryPicker({mode:'readwrite'});for(const item of processedResults){const handle=await directory.getFileHandle(item.name,{create:true}),writer=await handle.createWritable();await writer.write(item.blob);await writer.close()}$('#resultsHelp').textContent='Todas as imagens foram salvas na pasta escolhida.';return}processedResults.forEach(downloadOne);$('#resultsHelp').textContent='Downloads iniciados. Se solicitado, permita vários downloads neste site.'}catch(error){if(error.name!=='AbortError'){$('#resultsHelp').textContent='O aparelho bloqueou o download conjunto. Use os botões de cada foto abaixo.'}}});
 
     let installPrompt;
     const installButton=$('#installButton'),installTip=$('#installTip');
