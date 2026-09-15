@@ -20,6 +20,7 @@
     <a class="brand" href="/" aria-label="MarcaFlow — início"><b>✦</b><span>Marca<em>Flow</em></span></a>
     <div class="top-actions">
       <span class="privacy"><i></i> Suas imagens não ficam salvas</span>
+      <button class="download-app-button" id="downloadAppButton" type="button">Baixar aplicativo</button>
       <button class="install-button" id="installButton" type="button" hidden>Instalar app</button>
     </div>
   </header>
@@ -88,6 +89,24 @@
     <p>No iPhone, toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.</p>
   </div>
 
+  <div class="modal-backdrop" id="downloadModal" hidden>
+    <section class="download-modal" role="dialog" aria-modal="true" aria-labelledby="downloadTitle">
+      <button class="modal-close" type="button" id="closeDownloadModal" aria-label="Fechar">×</button>
+      <span class="modal-icon">✦</span>
+      <h2 id="downloadTitle">Baixe o MarcaFlow</h2>
+      <p>Escolha a versão para o seu aparelho. O download é gratuito.</p>
+      <div class="download-options">
+        <a href="https://github.com/EnzoCGoncalves/marca-dagua-site/releases/latest/download/MarcaFlow-Windows.exe">
+          <b>▣</b><span><strong>Windows</strong><small>Arquivo .exe para computador</small></span><em>Baixar</em>
+        </a>
+        <a href="https://github.com/EnzoCGoncalves/marca-dagua-site/releases/latest/download/MarcaFlow-Android.apk">
+          <b>●</b><span><strong>Android</strong><small>Arquivo .apk para celular</small></span><em>Baixar</em>
+        </a>
+      </div>
+      <small class="download-note">No Android será necessário permitir a instalação deste APK. No Windows pode aparecer “Editor desconhecido”, pois o projeto não usa certificado pago.</small>
+    </section>
+  </div>
+
   <script>
     const $=s=>document.querySelector(s), form=$('#formulario'), fotos=$('#fotos'), marca=$('#marca'), statusEl=$('#status');
     let photoUrls=[];
@@ -116,6 +135,12 @@
     $('#closeInstallTip').addEventListener('click',()=>installTip.hidden=true);
     if(isIos&&!isStandalone)installButton.hidden=false;
     if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js'));
+
+    const downloadModal=$('#downloadModal');
+    $('#downloadAppButton').addEventListener('click',()=>downloadModal.hidden=false);
+    $('#closeDownloadModal').addEventListener('click',()=>downloadModal.hidden=true);
+    downloadModal.addEventListener('click',event=>{if(event.target===downloadModal)downloadModal.hidden=true});
+    addEventListener('keydown',event=>{if(event.key==='Escape')downloadModal.hidden=true});
   </script>
 </body>
 </html>

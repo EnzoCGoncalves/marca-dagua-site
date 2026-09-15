@@ -1,0 +1,62 @@
+name: Gerar aplicativos gratuitos
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/windows/package-lock.json
+      - working-directory: apps/windows
+        run: npm ci
+      - working-directory: apps/windows
+        run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MarcaFlow-Windows
+          path: apps/windows/dist/MarcaFlow-Windows.exe
+          retention-days: 1
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - run: gradle --no-daemon -p apps/android :app:assembleDebug
+      - run: cp apps/android/app/build/outputs/apk/debug/app-debug.apk MarcaFlow-Android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MarcaFlow-Android
+          path: MarcaFlow-Android.apk
+          retention-days: 1
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - run: gh release create "$GITHUB_REF_NAME" artifacts/MarcaFlow-Windows.exe artifacts/MarcaFlow-Android.apk --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

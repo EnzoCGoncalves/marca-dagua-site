@@ -1,0 +1,23 @@
+{
+  "name": "marcaflow-desktop",
+  "version": "1.0.0",
+  "description": "Aplicativo desktop gratuito do MarcaFlow",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^44.4.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.enzocgoncalves.marcaflow",
+    "productName": "MarcaFlow",
+    "compression": "normal",
+    "artifactName": "MarcaFlow-Windows.${ext}",
+    "files": ["main.js", "package.json"],
+    "win": {"target": ["portable"]}
+  }
+}
