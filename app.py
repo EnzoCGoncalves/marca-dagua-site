@@ -61,6 +61,22 @@ def service_worker():
     return resposta
 
 
+@app.get("/.well-known/assetlinks.json")
+def android_asset_links():
+    return jsonify([
+        {
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": "com.enzocgoncalves.marcaflow",
+                "sha256_cert_fingerprints": [
+                    "16:CC:14:99:87:E8:B8:D5:1E:90:6A:F7:C3:D3:29:62:2F:2A:93:56:67:23:65:C6:2F:B6:96:EC:93:38:B5:11"
+                ],
+            },
+        }
+    ])
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "GET":

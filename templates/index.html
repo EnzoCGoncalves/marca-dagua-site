@@ -129,11 +129,13 @@
     const installButton=$('#installButton'),installTip=$('#installTip');
     const isIos=/iphone|ipad|ipod/i.test(navigator.userAgent);
     const isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-    addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;installButton.hidden=false});
+    const isPackagedApp=document.referrer.startsWith('android-app://com.enzocgoncalves.marcaflow')||/Electron/i.test(navigator.userAgent);
+    if(isStandalone||isPackagedApp)document.body.classList.add('native-app');
+    addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;if(!isPackagedApp)installButton.hidden=false});
     installButton.addEventListener('click',async()=>{if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;installButton.hidden=true}else if(isIos&&!isStandalone){installTip.hidden=false}});
     addEventListener('appinstalled',()=>{installButton.hidden=true;installTip.hidden=true});
     $('#closeInstallTip').addEventListener('click',()=>installTip.hidden=true);
-    if(isIos&&!isStandalone)installButton.hidden=false;
+    if(isIos&&!isStandalone&&!isPackagedApp)installButton.hidden=false;
     if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js'));
 
     const downloadModal=$('#downloadModal');
